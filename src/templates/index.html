@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <div class="container p-5 my-2 bg-dark text-white">
+      <h1>Help the robot learn the task!</h1>
+      The task is to pick the round nut up with the robotic arm and insert it into
+      the round peg/ slot.
+    </div>
+
+    <div class="container p-2  bg-dark text-white d-flex justify-content-center">
+    <div id="state"> <h3> Read the instructions below and then press START to begin the task </h3></div> 
+    </div>
+
+    <div class="container p-5 bg-dark text-white" id="maincontainer">
+    <div class="row">
+    <div class="col">
+        <img id="image"  class="img-fluid" style="max-width: 95%">
+      </div>
+      <div class="col">
+        <h3>CONTROLS</h3> <br>
+        <div id="controls"> 
+          <p> <b>W</b>: Forward, <b>S</b>: Backward <br>
+          <b>A</b>: Left, <b>D</b>: Right <br>
+          <b>R</b>: Up, <b>F</b>: Down <br>
+          <b>C</b>: Rotate Clockise, <b>V</b>: Rotate Counter Clockwise <br>
+          <b>Space</b>: Open / Close Gripper, <br>
+          <b>Z</b>: Intervene,  <b>Q</b>: Reset  </p>
+        </div>
+      </small>
+    </div>
+  </div>
+  </div>
+    <div id="feedbackht">
+    {{feedback|safe}}
+    </div>
+<div class="container p-2 my-2">
+  <div class="card">
+      <div class="card-header">
+          <h4>Instructions</h4> 
+      </div>
+    <div class="collapse show">
+      <div class="card-body">
+          <div class="row">
+            <div class="col-lg-6" id="instructions">
+              {{ instructions|safe }} 
+          </div>
+            <div class="col-lg-6">
+                <img id="instructions" class="img-fluid  flex-wrap align-items-center" src="/static/instructions.png" style="max-width: 100%" >
+                <p>&nbsp;</p>
+                <div class="d-grid">
+                  <button id="start" type="button" class="btn btn-danger btn-block"><h3>START THE TASK</h3></button>
+                </div>
+            </div>
+          </div>
+      </div>
+    </div>
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <script>
+      var socket = io();
+      var num_frames = 0;
+      var start = false;
+      const controlsHTML = `<p> <b>W</b>: Forward, <b>S</b>: Backward <br>
+          <b>A</b>: Left, <b>D</b>: Right <br>
+          <b>R</b>: Up, <b>F</b>: Down <br>
+          <b>C</b>: Rotate Clockise, <b>V</b>: Rotate Counter Clockwise <br>
+          <b>Space</b>: Open / Close Gripper, <br>
+          <b>Z</b>: Intervene,  <b>Q</b>: Reset  </p>`
+      const controlsInterveneHTML = `<p> <b>W</b>: Forward, <b>S</b>: Backward <br>
+          <b>A</b>: Left, <b>D</b>: Right <br>
+          <b>R</b>: Up, <b>F</b>: Down <br>
+          <b>C</b>: Rotate Clockise, <b>V</b>: Rotate Counter Clockwise <br>
+          <b>Space</b>: Open / Close Gripper, <br>
+          <b>Z</b>: Intervene  </p>`
+      const controlsTeachHTML = `<p> <b>W</b>: Forward, <b>S</b>: Backward <br>
+          <b>A</b>: Left, <b>D</b>: Right <br>
+          <b>R</b>: Up, <b>F</b>: Down <br>
+          <b>C</b>: Rotate Clockise, <b>V</b>: Rotate Counter Clockwise <br>
+          <b>Space</b>: Open / Close Gripper, <br>
+          <b>Q</b>: Reset  </p>`
+
+
+      // when document is ready
+      document.addEventListener('keyup', keyUp);
+      document.addEventListener('keydown', keyDown);
+      if(document.getElementById('feedback')){
+            var feedback_id = document.getElementById('feedback');
+            feedback_id.style.visibility = "hidden";
+          }
+      // add event listeners for the start button
+      $("#start").click(function() {
+        // disable the start button
+        $("#start").prop("disabled", true);
+        // change color of button to green
+        $("#start").removeClass("btn-danger");
+        $("#start").addClass("btn-success");
+        // scroll to the top of the page
+        window.scrollTo(0, 0);
+        // $("#instructions").collapse('hide');
+        $("#state").html("<h3> Task started! </h3>");
+        start = true;
+      });
+
+      socket.on('connect', function(){
+        console.log("Connected...!", socket.connected)
+      });
+      const FPS = 15;
+      socket.on('response_frame', function(image, comp_color, state){
+        if(start){
+          const image_id = document.getElementById('image');
+          // check if document has feedback div
+          var feedback_id = false
+          if(document.getElementById('feedback')){
+            var feedback_id = document.getElementById('feedback');
+            // feedback_id.style.display = "none";
+            feedback_id.style.visibility = "hidden";
+          }
+          const state_id = document.getElementById('state');
+          image_id.src = image;
+          // change bg color of feedback container to comp_color if feedback_id exists 
+          if (feedback_id){
+            feedback_id.style.backgroundColor = comp_color;
+            // hide feedback container 
+          }
+          state_id.innerHTML = state;
+          // if intervene in state, change controls, else if training, change controls
+          if(state.includes("Intervene")){
+            // make feedback container visible
+            if(feedback_id){
+              feedback_id.style.visibility = "visible";
+            }
+            $("#controls").html(controlsHTML);
+          }
+          else if (state.includes("Teach")){
+            if(feedback_id){
+              feedback_id.style.visibility = "visible";
+            }
+            $("#controls").html(controlsTeachHTML);
+          }
+          else if (state.includes("Practice")){
+            if(feedback_id){
+              feedback_id.style.visibility = "hidden";
+            }
+            $("#controls").html(controlsTeachHTML);
+          }
+          else{
+            $("#controls").html(controlsHTML);
+          }
+          num_frames += 1;
+        }
+      });
+      // reset num_frames every 1 second
+      setInterval(() => {
+          console.log(num_frames);
+          num_frames = 0;
+      }, 1000);
+
+      // call socket io event key down when wasdrfzxcv is pressed
+      function keyDown(e) {
+      if (e.keyCode === 32) {  
+          console.log("space pressed");
+            e.preventDefault();
+          } 
+        var key = e.key;
+        // get string of key pressed
+        var ch = String.fromCharCode(e.keyCode);
+        // convert ch string to lowercase
+        ch = ch.toLowerCase();
+        // if key is wasdrfzxcv call socket io event key down
+        if (ch == 'w' || ch == 'a' || ch == 's' || ch == 'd' || ch == 'f' || ch =='r' || ch == 'z' || ch == 'x' || ch == 'c' || ch == 'v') {
+        socket.emit('keydown', ch);
+        }
+      }
+
+      function keyUp(e) {
+        var key = e.key;
+        // get string of key pressed
+        var ch = String.fromCharCode(e.keyCode);
+        // getPorts();
+        // getDevices();
+        ch = ch.toLowerCase();
+        // if key is space or q call socket io event key up
+        if (ch == ' ' || ch == 'q') {
+          socket.emit('keyup', ch);
+        }
+      }
+      
+      onConnect = function () {
+        console.log("Connected to server");
+      };
+
+      onDisconnect = function (reason) {
+        console.log("Disconnected from server");
+      };
+
+    </script>
+  </body>
+</html>

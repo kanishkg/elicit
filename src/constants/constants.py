@@ -1,0 +1,44 @@
+# Dataset buffer size
+MAX_BUFFER_SIZE = int(1e5)
+
+# PickPlace constants
+PICKPLACE_MAX_TRAJ_LEN = 175
+
+# NutAssembly constants
+NUT_ASSEMBLY_MAX_TRAJ_LEN = 175
+NUT_ASSEMBLY_SQUARE_MAX_TRAJ_LEN = 500
+ACTION_BATCH_SIZE = 10
+
+# Wipe constants
+WIPE_MAX_TRAJ_LEN = 500 
+
+# Door constants
+DOOR_MAX_TRAJ_LEN = 500
+
+# Can constants
+CAN_MAX_TRAJ_LEN = 500
+
+# Coffee constants
+COFFEE_MAX_TRAJ_LEN = 600
+
+# Transport constants
+TRANSPORT_MAX_TRAJ_LEN = 1000
+
+# Hammer constants
+HAMMER_MAX_TRAJ_LEN = 400
+
+# Reach2D constants
+REACH2D_ACT_MAGNITUDE = 0.1
+REACH2D_MAX_TRAJ_LEN = 50
+REACH2D_ACT_DIM = 2
+REACH2D_OBS_DIM = 4
+REACH2D_RANGE_X = 3.0
+REACH2D_RANGE_Y = 3.0
+REACH2D_SUCCESS_THRESH = 0.1
+
+# Reach2D Pillar constants
+REACH2D_PILLAR_MAX_TRAJ_LEN = 70
+REACH2D_PILLAR_OBS_DIM = 6
+
+# Dagger constants
+MAX_NUM_LABELS = 1e6
